@@ -1,0 +1,162 @@
+#!/usr/bin/python3
+
+# Just to make sure, set Flash to Low quality
+# TODO: Log the activated accounts
+
+import pyautogui as p
+import time
+from getpass import getpass
+
+SETTINGS_BTN = "rotmg-assets/rotmg-wrench.png"
+BACK_BTN = "rotmg-assets/rotmg-back.png"
+LOGIN_BTN = "rotmg-assets/rotmg-login.png"
+LOGOUT_BTN = "rotmg-assets/rotmg-logout.png"
+LOGIN_FORM = "rotmg-assets/rotmg-form.png"
+PLAY_BTN = "rotmg-assets/rotmg-play.png"
+
+# MotMG. Accept Free Pack
+SHOP_BTN = "rotmg-assets/rotmg-shop.png"
+PACKAGES_BTN = "rotmg-assets/rotmg-packages.png"
+SCROLL_BAR = "rotmg-assets/rotmg-scroll.png"
+PACK_BTN = "rotmg-assets/motmg-pack.png"
+PACK2_BTN = "rotmg-assets/motmg-pack2.png"
+OK_BTN = "rotmg-assets/motmg-confirm.png"
+CLOSE_BTN = "rotmg-assets/motmg-close.png"
+
+def pause():
+	time.sleep(0.9)
+
+def on_screen(img):
+	return p.locateOnScreen(img, confidence=0.8)
+
+# Click using on_screen() function
+def click(img):
+	btn = p.center(on_screen(img))
+	p.click(btn)
+
+def doubleClick(img):
+	btn = p.center(on_screen(img))
+	p.doubleClick(btn)
+
+# Wait until it appears
+def wait(img):
+	while not on_screen(img):
+		continue
+
+def login(creds):
+	email = creds[0]
+	pw = creds[1]
+
+	print("Logging in with "+email)
+
+	while True:
+		if on_screen(SETTINGS_BTN): # If logged in and on Nexus
+			print("Logged in and on Nexus")
+			click(SETTINGS_BTN)
+			wait(BACK_BTN)
+			print("Going back to char select")
+			click(BACK_BTN)
+
+		if on_screen(LOGOUT_BTN): # Logged in but on char select
+			print("Logged in but on char select")
+			doubleClick(LOGOUT_BTN)
+			wait(LOGIN_FORM)
+
+		if on_screen(LOGIN_BTN): # Not logged in
+			print("Not logged in")
+			click(LOGIN_BTN)
+			wait(LOGIN_FORM)
+
+		if on_screen(LOGIN_FORM):
+			print("Found login form")
+			pause(); p.keyDown("shift"); p.press("tab"); p.keyUp("shift") #wait(LOGIN_BTN); click(LOGIN_BTN) # Outfocuses input boxes, preventing tab guesses. Doesn't work when lagging
+			p.press("tab") #p.press(["tab", "tab"])
+			p.typewrite(email, interval=0.10)
+			p.press("tab")
+			pause()
+			p.typewrite(pw, interval=0.12)
+			pause()
+			p.press("enter")
+			print("Waiting login")
+			wait(LOGOUT_BTN)
+			break
+
+	print("Logged in")
+
+def go_nexus():
+	print("Going to nexus")
+	pause()
+	while True:
+		btn = on_screen(PLAY_BTN)
+		if btn:
+			btn = p.center(btn)
+			p.doubleClick(btn)
+			break
+
+def wait_and_click(btn):
+	while not on_screen(btn):
+		continue
+	click(btn)
+
+def process_text(filename):
+	with open(filename,"r") as f:
+		raw_data = f.readlines()
+
+	# Remove newlines before appending string to list
+	processed_data = []
+	for i in range(len(raw_data)):
+		processed_data.append(raw_data[i].replace('\n', ''))
+	return processed_data	
+
+def account_used(acc):
+	used_accounts = process_text("used-accounts.txt")
+	if acc in used_accounts:
+		print(email+" is a used account")
+		return True
+
+def add_used_account(acc):
+	with open("used-accounts.txt", "a+") as f:
+		f.writelines(acc+"\n")
+
+def motmg_pack():
+	print("Will retrieve Free Pack")
+	wait_and_click(SHOP_BTN)
+	wait_and_click(PACKAGES_BTN)
+	wait_and_click(SCROLL_BAR)
+	pause()
+	p.scroll(-100)
+	s = time.time()
+	free_pack=True
+	# Look for free pack for 3 seconds. If not found, exit
+	while not on_screen(PACK2_BTN):
+		e = time.time()
+		if e - s >= 3:
+			print("No free pack, exiting..")
+			wait_and_click(CLOSE_BTN)
+			free_pack=False
+			break
+		continue
+	if free_pack:
+		wait_and_click(PACK2_BTN)
+		wait_and_click(OK_BTN)
+		wait_and_click(CLOSE_BTN)
+
+def renew_accounts_txt():
+	with open("used-accounts.txt", "w") as f:
+		f.writelines("")
+
+def get_password():
+	return getpass()
+
+if __name__ == "__main__":
+	emails = process_text("accounts.txt")
+	password = get_password()
+	for email in emails:
+		if not account_used(email):
+			renew_accounts_txt()
+			login([email, password]) # Hardcoded PW
+			go_nexus()
+			#motmg_pack()
+			add_used_account(email)
+			print("Press enter to continue")
+			input()

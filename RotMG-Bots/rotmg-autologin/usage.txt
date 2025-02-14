@@ -1,0 +1,19 @@
+#Make a separate virtual environment for the program:
+$ cd <folder>
+$ virtualenv venv # create a virtual environment named "venv"
+$ source venv/bin/activate
+
+# Make sure the virtual environment is activated before running any of these!
+
+# Install requirements.txt
+pip3 install -r requirements.txt
+
+#Allow PIL to deal with .png and .jpeg files on Ubuntu:
+ln -s /usr/lib/`dpkg-architecture -qDEB_HOST_MULTIARCH`/libz.so $VIRTUAL_ENV/lib/
+ln -s /usr/lib/`dpkg-architecture -qDEB_HOST_MULTIARCH`/libfreetype.so $VIRTUAL_ENV/lib/
+ln -s /usr/lib/`dpkg-architecture -qDEB_HOST_MULTIARCH`/libjpeg.so $VIRTUAL_ENV/lib/
+
+# Make sure accounts.txt contains your accounts' email credentials; one line for each entry
+
+# You're ready to go!
+python3 rotmg-autologin
